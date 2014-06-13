@@ -1,0 +1,140 @@
+import os,sys,time,traceback as tb,re,json
+from pprint import pprint
+data = ''.join(sys.stdin.xreadlines())
+def get_tuple(cursor, name, tup, skip_ws=True):
+    if skip_ws:  ws,cursor = get_ws(cursor)
+    ret = {}
+    cursor0 = ret['start'] = cursor
+    while data.startswith(tup, cursor):
+        cursor += 1
+        pass
+    ret['name']=name
+    ret['tok']=data[cursor0:cursor]
+    if not ret['tok']:
+        ret['err'] = 'not found'
+    return ret,cursor
+def get_ws(cursor):
+    ret = {}
+    cursor0 = ret['start'] = cursor
+    while data.startswith(tuple(' \t\r\n\v'),cursor):
+        cursor += 1
+        pass
+    ret['ws']=data[cursor0:cursor]
+    return ret,cursor
+def get_id(cursor, skip_ws=True):
+    return get_tuple(cursor, 'id',
+                     tuple('abcdefghijklmnopqrstuvwxyz'+
+                           'ABCDEFGHIJKLMNOPQRSTUVWXYX'+
+                           '0123456789_'), skip_ws=skip_ws)
+def get_int(cursor, skip_ws=True):
+    return get_tuple(cursor, 'int',
+                     tuple('0123456789'))
+def get_str(cursor, name, tok_str=None, skip_ws=True):
+    tok_str = tok_str or name
+    if skip_ws:  x,cursor = get_ws(cursor)
+    
+    ret = {}
+    cursor0 = ret['start'] = cursor
+    ret['type']=name
+    ret[ name ]=True
+    if data.startswith(tok_str, cursor):
+        cursor += len(tok_str)
+        pass
+    ret['str']=data[cursor0:cursor]
+    if not ret['str']:
+        ret['err'] = 'not found'
+    return ret,cursor
+def get_list(cursor, type, func):
+    arr = []
+    cursor0 = cursor
+    while 1:
+        ret2,cursor = func(cursor)
+        if 'err' in ret2:
+            ret = {}
+            ret['start']=cursor0
+            #ret['list']=arr
+            ret[type]=arr
+            return ret,cursor
+        arr.append(ret2)
+        pass
+def get_str_url_encoded(cursor,skip_ws=True):
+    from urllib import unquote
+    if skip_ws:  x,cursor = get_ws(cursor)
+    cursor0=cursor
+    if not data.startswith('"',cursor):
+        return dict(err='not found'), cursor
+    n = data.find('"',cursor+1)
+    if n == -1:
+        return ('unbound string',''),cursor
+    ret = {}
+    ret['start']=cursor0
+    ret['str'] = unquote(data[cursor+1:n])
+    return ret,n+1
+{{#program}}
+
+def get_{{rname.tok}}(c):
+    {{#op.and}}
+    r0={"start":c};c0=c
+
+      {{#terms.nterms}}
+        {{#term.tok}}
+    r, c = get_{{term.tok}}(c)
+        {{/term.tok}}
+        {{#term.str}}
+    r, c = get_str(c,"{{name.tok}}","{{term.str}}")
+        {{/term.str}}
+    if 'err' in r:
+        return r, c
+    r0['{{name.tok}}'] = r
+
+      {{/terms.nterms}}
+    r0['finish'] = c
+    return r0, c
+    {{/op.and}}
+    {{#op.or}}
+    r0={"start":c};c0=c
+
+      {{#terms.nterms}}
+        {{#term.tok}}
+    r, c = get_{{term.tok}}(c)
+        {{/term.tok}}
+        {{#term.str}}
+    r, c = get_str(c,"{{name.tok}}","{{{term.str}}}")
+        {{/term.str}}
+    if 'err' not in r:
+        if 0: r0['{{{name.tok}}}']=r;   r0['finish']=c; return r0, c
+        else : r['{{{name.tok}}}']=True; r['finish']=c; return r, c
+
+      {{/terms.nterms}}
+    r['err'] = "No matches"
+    return r, c0
+    {{/op.or}}
+    {{#op.arr}}
+    r0={ "start":c, "{{rname.tok}}":[] }; c0=c
+    while 1:
+        sub=[]
+
+      {{#terms.nterms}}
+        {{#term.tok}}
+        r, c = get_{{term.tok}}(c)
+        {{/term.tok}}
+        {{#term.str}}
+	r, c = get_str(c,"{{name.tok}}","{{{term.str}}}")
+        {{/term.str}}
+        if 'err' in r: r0['finish']=c; return r0, c0
+        sub.append(r)
+
+      {{/terms.nterms}}
+        c0=c; r0['{{rname.tok}}'].extend(sub)
+        pass
+    pass
+    {{/op.arr}}
+{{/program}}
+
+def main():
+    r,c=get_program(0)
+    if repr(data[c:]): ws,c = get_ws(c)
+    if data[c:]:       print "LEFTOVERS:", repr(data[c:])
+    else:              print json.dumps(r, indent=4)
+
+if __name__=='__main__': main()

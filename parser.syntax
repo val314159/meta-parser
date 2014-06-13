@@ -1,0 +1,7 @@
+term    ::| label::id xstr::str_url_encoded null::"null" ;;
+nterm   ::& name::id s1::":" s2::":" term::term ;;
+nterms  ::* nterm::nterm ;;
+op      ::| and::"::&" or::"::|" arr::"::*" ;;
+rule    ::& rname::id op::op terms::nterms end::";;" ;;
+program ::* rule::rule ;;
+
