@@ -1,7 +1,12 @@
-term    ::| label::id xstr::str_url_encoded null::"null" ;;
-nterm   ::& name::id s1::":" s2::":" term::term ;;
-nterms  ::* nterm::nterm ;;
-op      ::| and::"::&" or::"::|" arr::"::*" ;;
-rule    ::& rname::id op::op terms::nterms end::";;" ;;
-program ::* rule::rule ;;
+term    ::| id str_url_encoded ;;
+terms   ::* term ;;
 
+rname    ::& id ;;
+
+rule_and ::& rname "::&" terms ";;" ;;
+rule_or  ::& rname "::|" terms ";;" ;;
+rule_arr ::& rname "::*" terms ";;" ;;
+
+rule ::| rule_and rule_or rule_arr ;;
+
+rules ::* rule ;;

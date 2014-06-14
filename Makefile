@@ -1,16 +1,21 @@
 
-all: test
+all: test2
 
-test: python.out
+test1: rendered.py
+	cat parser.syntax | python rendered.py
+
+test2: rendered.py
+	cat parser.syntax | python rendered.py >dat
+	diff parser.data dat
+	rm -f dat
+
+rendered.py: python.mustache parser.data
+	python -mstaching -t python.mustache -d parser.data -r rendered.py
+
+xtest1: python.out
 	diff python.out parser.py
-	@echo "## TEST SUCCEEDS ##"
-
-python.out: python.json
-	pystache python.mustache python.json >python.out
-
-python.json: parser.syntax
-	python parser.py <parser.syntax >python.json
+	@echo "## TEST1 SUCCEEDS ##"
 
 clean:
-	rm -f m out *.pyc .*~ *~ *.json *.out \#* .\#*
+	rm -f m out *.pyc .*~ *~ *.json *.out \#* .\#* rendered.py
 
