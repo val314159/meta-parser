@@ -39,19 +39,6 @@ def get_xstr(cursor, tok_str, skip_ws=True):
     if not ret['str']:
         ret['err'] = 'not found'
     return ret,cursor
-def get_list(cursor, type, func):
-    arr = []
-    cursor0 = cursor
-    while 1:
-        ret2,cursor = func(cursor)
-        if 'err' in ret2:
-            ret = {}
-            ret['start']=cursor0
-            #ret['list']=arr
-            ret[type]=arr
-            return ret,cursor
-        arr.append(ret2)
-        pass
 def get_str_url_encoded(cursor,skip_ws=True):
     from urllib import unquote
     if skip_ws:  x,cursor = get_ws(cursor)
@@ -65,3 +52,4 @@ def get_str_url_encoded(cursor,skip_ws=True):
     ret['start']=cursor0
     ret['str'] = unquote(data[cursor+1:n])
     return ret,n+1
+get_str_url=get_str_url_encoded
